@@ -20,4 +20,9 @@ public class Moment {
     private String mood;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+
+
+    @ManyToOne
+    @JoinColumn(name = "user_id", nullable = false)
+    private User owner;
 }
