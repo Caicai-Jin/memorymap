@@ -25,4 +25,8 @@ public class Moment {
     @ManyToOne
     @JoinColumn(name = "user_id", nullable = false)
     private User owner;
+
+    @ManyToOne
+    @JoinColumn(name = "location_id")
+    private Location location;
 }
