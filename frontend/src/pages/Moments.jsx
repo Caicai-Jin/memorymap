@@ -24,6 +24,8 @@ function Moments() {
   const [moments, setMoments] = useState([])
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
+  const [page, setPage] = useState(0)
+  const [totalPages, setTotalPages] = useState(0)
 
   const [content, setContent] = useState('')
   const [mood, setMood] = useState('')
@@ -76,9 +78,9 @@ function Moments() {
     }
   }
 
-  async function loadMoments() {
+  async function loadMoments(targetPage = page) {
     setLoading(true)
-    const response = await apiFetch('/moments')
+    const response = await apiFetch(`/moments?page=${targetPage}`)
 
     if (!response.ok) {
       setError('Failed to load moments.')
@@ -87,12 +89,14 @@ function Moments() {
     }
 
     const data = await response.json()
-    setMoments(data)
+    setMoments(data.content)
+    setPage(data.page.number)
+    setTotalPages(data.page.totalPages)
     setLoading(false)
   }
 
   useEffect(() => {
-    loadMoments()
+    loadMoments(0)
     loadHomeLocation()
   }, [])
 
@@ -227,10 +231,13 @@ function Moments() {
     const fileToUpload = pendingFile
     resetForm()
 
+    // A newly created moment appears first (newest-first ordering), so jump back
+    // to page 0 to show it; an edit stays on whichever page the user was already on.
+    const targetPage = isEditing ? page : 0
     if (fileToUpload) {
-      await handleUpload(savedMoment.id, fileToUpload)
+      await handleUpload(savedMoment.id, fileToUpload, targetPage)
     } else {
-      await loadMoments()
+      await loadMoments(targetPage)
     }
   }
 
@@ -248,7 +255,7 @@ function Moments() {
     await loadMoments()
   }
 
-  async function handleUpload(id, file) {
+  async function handleUpload(id, file, targetPage = page) {
     if (!file) return
 
     setUploadError('')
@@ -283,7 +290,7 @@ function Moments() {
         return
       }
 
-      await loadMoments()
+      await loadMoments(targetPage)
     } catch (err) {
       setUploadError(
         err.name === 'AbortError'
@@ -627,6 +634,42 @@ function Moments() {
             </li>
           ))}
         </ul>
+
+        {totalPages > 1 && (
+          <div className="mt-6 flex items-center justify-center gap-2">
+            <button
+              type="button"
+              onClick={() => loadMoments(page - 1)}
+              disabled={page === 0}
+              className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Previous
+            </button>
+            {Array.from({ length: totalPages }, (_, i) => i).map((pageNum) => (
+              <button
+                key={pageNum}
+                type="button"
+                onClick={() => loadMoments(pageNum)}
+                aria-current={pageNum === page ? 'page' : undefined}
+                className={`h-8 w-8 rounded-lg text-sm font-medium transition-colors ${
+                  pageNum === page
+                    ? 'bg-indigo-600 text-white'
+                    : 'text-slate-700 hover:bg-slate-100'
+                }`}
+              >
+                {pageNum + 1}
+              </button>
+            ))}
+            <button
+              type="button"
+              onClick={() => loadMoments(page + 1)}
+              disabled={page + 1 >= totalPages}
+              className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Next
+            </button>
+          </div>
+        )}
       </div>
       {showHomeModal && (
         <HomeLocationModal

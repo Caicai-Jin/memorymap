@@ -39,7 +39,9 @@ function MapView() {
   useEffect(() => {
     async function loadMoments() {
       setLoading(true)
-      const response = await apiFetch('/moments')
+      // The map needs every location at once to plot all pins, unlike the Moments
+      // page — a large size in one call, rather than paging through like it does.
+      const response = await apiFetch('/moments?size=1000')
 
       if (!response.ok) {
         setError('Failed to load moments.')
@@ -48,7 +50,7 @@ function MapView() {
       }
 
       const data = await response.json()
-      setMoments(data)
+      setMoments(data.content)
       setLoading(false)
     }
 

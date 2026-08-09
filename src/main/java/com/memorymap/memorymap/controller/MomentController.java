@@ -11,6 +11,10 @@ import com.memorymap.memorymap.model.Moment;
 import com.memorymap.memorymap.service.LocationService;
 import com.memorymap.memorymap.service.MediaService;
 import com.memorymap.memorymap.service.MomentService;
+import jakarta.validation.Valid;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PagedModel;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -27,15 +31,20 @@ public class MomentController {
     }
 
     @PostMapping("/moments")
-    public MomentResponse createMoment(@RequestBody Moment moment){
+    public MomentResponse createMoment(@Valid @RequestBody Moment moment){
         return toResponse(momentService.createMoment(moment));
     }
 
+    // size is client-controllable (not just the fixed default) so the Map view can
+    // request everything in one call (?size=1000) instead of only the latest page —
+    // the Moments page itself never sends size, so it always gets the default.
     @GetMapping("/moments")
-    public List<MomentResponse> getAllMoments(){
-        return momentService.getAllMoments().stream().map(this::toResponse).toList();
+    public PagedModel<MomentResponse> getAllMoments(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "5") int size){
+        Pageable pageable = PageRequest.of(page, size);
+        return new PagedModel<>(momentService.getAllMoments(pageable).map(this::toResponse));
     }
-    //.map(moment -> this.toResponse(moment))
 
     @GetMapping("/moments/{id}")
     public MomentResponse getMomentById(@PathVariable Long id){
@@ -43,14 +52,9 @@ public class MomentController {
     }
 
     @PutMapping("/moments/{id}")
-    public MomentResponse updateMoment(@PathVariable Long id, @RequestBody Moment updatedData){
+    public MomentResponse updateMoment(@PathVariable Long id, @Valid @RequestBody Moment updatedData){
         return toResponse(momentService.updateMoment(id, updatedData));
     }
-    // 1. momentService.getAllMoments() — get the list of all your real moments off the shelf
-    //  2. .stream() — put that whole list onto the conveyor belt, one item at a time
-    //  3. .map(this::toResponse) — as each real Moment passes by, the translator (toResponse)
-    //  converts it into a safe MomentResponse
-    //  4. .toList() — collect everything that came off the belt into a fresh list
 
     @DeleteMapping("/moments/{id}")
     public void deleteMoment(@PathVariable Long id){

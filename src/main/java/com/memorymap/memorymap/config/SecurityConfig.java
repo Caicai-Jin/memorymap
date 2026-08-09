@@ -47,6 +47,9 @@ public class SecurityConfig {
                 .cors(Customizer.withDefaults())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/register", "/login", "/error").permitAll()
+                        // Docs themselves are public (no real data exposed) — the actual
+                        // API calls made through Swagger UI still need a real JWT, same as any other client.
+                        .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);

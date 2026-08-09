@@ -1,6 +1,7 @@
 package com.memorymap.memorymap.model;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -16,7 +17,10 @@ public class Moment {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    // Nullable by design (a moment can be media-only, no text) — only capped, never required.
     @Column(nullable = true)
+    @Size(max = 5000, message = "Content cannot exceed 5000 characters")
     private String content;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

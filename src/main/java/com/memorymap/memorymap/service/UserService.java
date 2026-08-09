@@ -1,5 +1,7 @@
 package com.memorymap.memorymap.service;
 
+import com.memorymap.memorymap.exception.DuplicateEmailException;
+import com.memorymap.memorymap.exception.InvalidCredentialsException;
 import com.memorymap.memorymap.model.User;
 import com.memorymap.memorymap.repository.UserRepository;
 import io.jsonwebtoken.Jwts;
@@ -32,7 +34,7 @@ public class UserService {
 
     public User register(User user){
         if(userRepository.findByEmail(user.getEmail()).isPresent()){
-            throw new RuntimeException("Email already in use");
+            throw new DuplicateEmailException("Email already in use");
         }
         else{
             user.setPassword(passwordEncoder.encode(user.getPassword()));
@@ -43,10 +45,10 @@ public class UserService {
 
     public String login(String email, String password){
         User user=userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Invalid email or password"));
+                .orElseThrow(() -> new InvalidCredentialsException("Invalid email or password"));
 
             if(!passwordEncoder.matches(password, user.getPassword())){
-                throw new RuntimeException("Invalid email or password");
+                throw new InvalidCredentialsException("Invalid email or password");
             }
             return jwtService.generateToken(user.getEmail());
 

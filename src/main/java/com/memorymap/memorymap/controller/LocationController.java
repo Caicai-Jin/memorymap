@@ -6,6 +6,7 @@ import com.memorymap.memorymap.exception.LocationNotFoundException;
 import com.memorymap.memorymap.model.Location;
 import com.memorymap.memorymap.service.LocationSearchService;
 import com.memorymap.memorymap.service.LocationService;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -26,7 +27,7 @@ public class LocationController {
     }
 
     @PostMapping("/locations")
-    public LocationResponse createLocation(@RequestBody Location location){
+    public LocationResponse createLocation(@Valid @RequestBody Location location){
         return toResponse(locationService.createLocation(location));
     }
 
@@ -38,7 +39,7 @@ public class LocationController {
     }
 
     @PutMapping("/locations/home")
-    public LocationResponse updateHomeLocation(@RequestBody Location location){
+    public LocationResponse updateHomeLocation(@Valid @RequestBody Location location){
         return toResponse(locationService.updateHomeLocation(location));
     }
 

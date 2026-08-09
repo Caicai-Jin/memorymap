@@ -52,4 +52,58 @@ class AuthFlowE2ETest {
         mockMvc.perform(get("/moments"))
                 .andExpect(status().isForbidden());
     }
+
+    @Test
+    void registeringWithATooShortPasswordIsRejected() throws Exception {
+        String body = """
+                {"email": "%s", "password": "short"}
+                """.formatted("short_pw_" + System.nanoTime() + "@test.com");
+
+        mockMvc.perform(post("/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void registeringWithAMalformedEmailIsRejected() throws Exception {
+        mockMvc.perform(post("/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\": \"not-an-email\", \"password\": \"TestPass123!\"}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void duplicateEmailRegistrationIsRejectedCleanly() throws Exception {
+        String email = "auth_flow_dup_" + System.nanoTime() + "@test.com";
+        String body = """
+                {"email": "%s", "password": "TestPass123!"}
+                """.formatted(email);
+
+        mockMvc.perform(post("/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("Email already in use"));
+    }
+
+    @Test
+    void loginWithWrongPasswordIsRejectedCleanly() throws Exception {
+        String email = "auth_flow_wrongpw_" + System.nanoTime() + "@test.com";
+        mockMvc.perform(post("/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\": \"" + email + "\", \"password\": \"TestPass123!\"}"))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\": \"" + email + "\", \"password\": \"WrongPassword1\"}"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.message").value("Invalid email or password"));
+    }
 }

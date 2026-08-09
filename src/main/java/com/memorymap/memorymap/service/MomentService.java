@@ -7,11 +7,12 @@ import com.memorymap.memorymap.model.Location;
 import com.memorymap.memorymap.model.Moment;
 import com.memorymap.memorymap.repository.LocationRepository;
 import com.memorymap.memorymap.repository.MomentRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
@@ -64,8 +65,8 @@ public class MomentService {
         return saved;
     }
 
-    public List<Moment> getAllMoments(){
-         return momentRepository.findByOwnerOrderByCreatedAtDesc(userService.getCurrentUser());
+    public Page<Moment> getAllMoments(Pageable pageable){
+         return momentRepository.findByOwnerOrderByCreatedAtDesc(userService.getCurrentUser(), pageable);
     }
 
     public Optional<Moment> getMomentById(Long id){

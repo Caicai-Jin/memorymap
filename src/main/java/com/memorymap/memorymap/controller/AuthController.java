@@ -2,6 +2,7 @@ package com.memorymap.memorymap.controller;
 
 import com.memorymap.memorymap.model.User;
 import com.memorymap.memorymap.service.UserService;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
@@ -15,12 +16,12 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public User createUser(@RequestBody User user){
+    public User createUser(@Valid @RequestBody User user){
         return userService.register(user);
     }
 
     @PostMapping("/login")
-    public String loginUser(@RequestBody User user){
+    public String loginUser(@Valid @RequestBody User user){
         return userService.login(user.getEmail(), user.getPassword());
     }
     // Because AuthController is a @RestController,
