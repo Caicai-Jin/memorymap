@@ -18,7 +18,6 @@ public class Moment {
     private Long id;
     @Column(nullable = true)
     private String content;
-    private String mood;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -31,6 +30,13 @@ public class Moment {
     @JoinColumn(name = "location_id")
     private Location location;
 
-    @OneToMany(mappedBy = "moment")
+    @OneToMany(mappedBy = "moment", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Media> media;
+
+    //  @ElementCollection — tells JPA "this isn't a relationship to another entity,
+    //  it's just a list of plain values (strings) that belong to this Moment"
+    @ElementCollection
+    @CollectionTable(name = "moment_moods", joinColumns = @JoinColumn(name = "moment_id"))
+    @Column(name = "mood")
+    private List<String> mood;
 }

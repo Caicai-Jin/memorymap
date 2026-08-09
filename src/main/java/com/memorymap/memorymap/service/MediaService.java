@@ -1,5 +1,6 @@
 package com.memorymap.memorymap.service;
 
+import com.memorymap.memorymap.exception.MediaNotFoundException;
 import com.memorymap.memorymap.exception.MediaUploadNotAllowedException;
 import com.memorymap.memorymap.model.Media;
 import com.memorymap.memorymap.model.MediaType;
@@ -29,6 +30,11 @@ public class MediaService {
         if(existingMedia.size()>=9){
             throw new MediaUploadNotAllowedException("Maximum 9 media items per moment");
         }
+        // Checked before the Cloudinary call (not after) so an oversized file is
+        // rejected instantly instead of uploading in full first and only then failing.
+        if (file.getSize() > 50 * 1024 * 1024) {
+            throw new MediaUploadNotAllowedException("File can not be over 50MB");
+        }
         CloudinaryUploadResult result= cloudinaryService.uploadFile(file);
         MediaType type = result.resourceType().equals("video") ? MediaType.VIDEO : MediaType.IMAGE;
         long videoCount = existingMedia.stream().filter(m -> m.getType() == MediaType.VIDEO).count();
@@ -40,17 +46,27 @@ public class MediaService {
             cloudinaryService.deleteFile(result.publicId(), result.resourceType());
             throw new MediaUploadNotAllowedException("Video cannot be longer than 60 seconds");
         }
-        if (file.getSize() > 50 * 1024 * 1024) {
-            cloudinaryService.deleteFile(result.publicId(), result.resourceType());
-            throw new MediaUploadNotAllowedException("File can not be over 50MB");
-        }
 
         Media media = new Media();
         media.setType(type);
         media.setUrl(result.url());
+        media.setPublicId(result.publicId());
         media.setMoment(moment);
         return mediaRepository.save(media);
 
+    }
+
+    public void deleteMedia(Long momentId, Long mediaId) throws IOException {
+        Moment moment = momentService.getMomentById(momentId).get();
+        Media media = mediaRepository.findById(mediaId)
+                .orElseThrow(() -> new MediaNotFoundException("Media not found"));
+        if (!media.getMoment().getId().equals(moment.getId())) {
+            throw new MediaNotFoundException("Media not found");
+        }
+        if (media.getPublicId() != null) {
+            cloudinaryService.deleteFile(media.getPublicId(), media.getType() == MediaType.VIDEO ? "video" : "image");
+        }
+        mediaRepository.delete(media);
     }
 
     public List<Media> getMediaForMoment(Moment moment){

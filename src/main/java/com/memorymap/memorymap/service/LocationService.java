@@ -1,10 +1,13 @@
 package com.memorymap.memorymap.service;
 
 import com.memorymap.memorymap.exception.DuplicateHomeLocationException;
+import com.memorymap.memorymap.exception.LocationNotFoundException;
 import com.memorymap.memorymap.model.Location;
 import com.memorymap.memorymap.model.User;
 import com.memorymap.memorymap.repository.LocationRepository;
 import org.springframework.stereotype.Service;
+
+import java.util.Optional;
 
 import static com.memorymap.memorymap.model.LocationType.HOME;
 
@@ -27,6 +30,25 @@ public class LocationService {
         }
         locationRepository.save(location);
         return location;
+    }
+
+    public Optional<Location> getHomeLocation(){
+        User currentUser = userService.getCurrentUser();
+        return locationRepository.findByOwnerAndType(currentUser, HOME);
+    }
+
+    public Location updateHomeLocation(Location updatedData){
+        User currentUser = userService.getCurrentUser();
+        Location home = locationRepository.findByOwnerAndType(currentUser, HOME)
+                .orElseThrow(() -> new LocationNotFoundException("No Home location set yet"));
+
+        home.setName(updatedData.getName());
+        home.setAddress(updatedData.getAddress());
+        home.setLatitude(updatedData.getLatitude());
+        home.setLongitude(updatedData.getLongitude());
+
+        locationRepository.save(home);
+        return home;
     }
 
     public Location maskIfHome(Location location){

@@ -7,22 +7,36 @@ import com.memorymap.memorymap.model.Location;
 import com.memorymap.memorymap.model.Moment;
 import com.memorymap.memorymap.repository.LocationRepository;
 import com.memorymap.memorymap.repository.MomentRepository;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 @Service
 public class MomentService {
     private final MomentRepository momentRepository;
     private final UserService userService;
     private final LocationRepository locationRepository;
+    private final StringRedisTemplate redisTemplate;
 
-    public MomentService(MomentRepository momentRepository, UserService userService, LocationRepository locationRepository) {
+    public MomentService(MomentRepository momentRepository, UserService userService, LocationRepository locationRepository, StringRedisTemplate redisTemplate) {
         this.momentRepository = momentRepository;
         this.userService = userService;
         this.locationRepository = locationRepository;
+        this.redisTemplate = redisTemplate;
+    }
+
+    // Cached stats are keyed "stats::<userId>-<year>". A moment write can only
+    // affect the owning user's own stats, so we only need to clear that user's
+    // entries (across all years) rather than the whole "stats" cache.
+    private void evictStatsCache(Long userId) {
+        Set<String> keys = redisTemplate.keys("stats::" + userId + "-*");
+        if (keys != null && !keys.isEmpty()) {
+            redisTemplate.delete(keys);
+        }
     }
 
     // The client only sends a location's id (e.g. {"id": 3}), not its full data.
@@ -45,11 +59,13 @@ public class MomentService {
          moment.setOwner(userService.getCurrentUser());
          moment.setLocation(resolveLocation(moment.getLocation()));
          //service hands object to momentRepository.save(moment)
-        return momentRepository.save(moment);
+        Moment saved = momentRepository.save(moment);
+        evictStatsCache(saved.getOwner().getId());
+        return saved;
     }
 
     public List<Moment> getAllMoments(){
-         return momentRepository.findByOwner(userService.getCurrentUser());
+         return momentRepository.findByOwnerOrderByCreatedAtDesc(userService.getCurrentUser());
     }
 
     public Optional<Moment> getMomentById(Long id){
@@ -73,7 +89,9 @@ public class MomentService {
             existingMoment.setMood(updatedData.getMood());
             existingMoment.setLocation(resolveLocation(updatedData.getLocation()));
             existingMoment.setUpdatedAt(LocalDateTime.now());
-            return momentRepository.save(existingMoment);
+            Moment saved = momentRepository.save(existingMoment);
+            evictStatsCache(saved.getOwner().getId());
+            return saved;
         }
         else{
             throw new MomentAccessDeniedException("not the owner of the memory");
@@ -85,6 +103,7 @@ public class MomentService {
                         .orElseThrow(() -> new MomentNotFoundException("Moment not found"));
         if(userService.getCurrentUser().getEmail().equals(moment.getOwner().getEmail())){
             momentRepository.deleteById(id);
+            evictStatsCache(moment.getOwner().getId());
         }
         else{
             throw new MomentAccessDeniedException("not the owner of the memory");
@@ -93,3 +112,4 @@ public class MomentService {
 
 
 }
+

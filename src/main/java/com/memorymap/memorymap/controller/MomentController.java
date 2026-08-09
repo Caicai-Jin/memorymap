@@ -94,4 +94,9 @@ public class MomentController {
         return new MediaResponse(media.getId(), media.getType(), media.getUrl());
     }
 
+    @DeleteMapping("/moments/{momentId}/media/{mediaId}")
+    public void deleteMedia(@PathVariable Long momentId, @PathVariable Long mediaId) throws IOException {
+        mediaService.deleteMedia(momentId, mediaId);
+    }
+
 }

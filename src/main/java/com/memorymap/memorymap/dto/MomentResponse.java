@@ -3,7 +3,7 @@ package com.memorymap.memorymap.dto;
 import java.time.LocalDateTime;
 import java.util.List;
 
-public record MomentResponse(Long id, String content, String mood, LocalDateTime createdAt, LocalDateTime updatedAt, LocationResponse location, List<MediaResponse> mediaResponses) {
+public record MomentResponse(Long id, String content, List<String> mood, LocalDateTime createdAt, LocalDateTime updatedAt, LocationResponse location, List<MediaResponse> mediaResponses) {
 }
 
 //What a DTO is: "Data Transfer Object" —

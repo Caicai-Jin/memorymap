@@ -13,9 +13,18 @@ public class LocationSearchService {
 
     private final RestClient restClient = RestClient.create();
 
+    // Soft bias only — nudges ambiguous/generic queries (e.g. "Costco") toward Canada,
+    // without excluding other provinces or other countries: an explicit query like
+    // "Costco Vancouver" or "Costco Buffalo" still matches on text relevance as normal,
+    // verified live against Photon before this was added.
+    private static final double CANADA_BIAS_LAT = 43.4;
+    private static final double CANADA_BIAS_LON = -80.5;
+    private static final double CANADA_BIAS_SCALE = 0.2;
+
     public List<LocationSearchResult> search(String query) {
         PhotonResponse response = restClient.get()
-                .uri("https://photon.komoot.io/api/?q={query}&limit=5", query)
+                .uri("https://photon.komoot.io/api/?q={query}&limit=5&lat={lat}&lon={lon}&location_bias_scale={scale}",
+                        query, CANADA_BIAS_LAT, CANADA_BIAS_LON, CANADA_BIAS_SCALE)
                 .retrieve()
                 .body(PhotonResponse.class);
 

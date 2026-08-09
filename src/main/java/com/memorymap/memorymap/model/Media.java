@@ -18,6 +18,10 @@ public class Media {
 
     private String url;
 
+    // Cloudinary's id for this file, needed to delete it from Cloudinary storage
+    // when the media is removed. Null for any media uploaded before this field existed.
+    private String publicId;
+
     @ManyToOne
     @JoinColumn(name = "moment_id", nullable = false)
     private Moment moment;
