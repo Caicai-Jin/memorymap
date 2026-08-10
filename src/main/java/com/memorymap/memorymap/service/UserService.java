@@ -11,6 +11,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 
 @Service
 public class UserService {
@@ -38,7 +39,7 @@ public class UserService {
         }
         else{
             user.setPassword(passwordEncoder.encode(user.getPassword()));
-            user.setCreatedAt(LocalDateTime.now());
+            user.setCreatedAt(LocalDateTime.now(ZoneOffset.UTC));
             return userRepository.save(user);
         }
     }

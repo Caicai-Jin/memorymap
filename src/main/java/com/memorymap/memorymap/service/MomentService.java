@@ -13,6 +13,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.Optional;
 import java.util.Set;
 
@@ -55,7 +56,7 @@ public class MomentService {
     //return the created moment
     public Moment createMoment(Moment moment){
          //user filled content and mood, id is auto-generated
-         moment.setCreatedAt(LocalDateTime.now());
+         moment.setCreatedAt(LocalDateTime.now(ZoneOffset.UTC));
          moment.setUpdatedAt(moment.getCreatedAt());
          moment.setOwner(userService.getCurrentUser());
          moment.setLocation(resolveLocation(moment.getLocation()));
@@ -89,7 +90,7 @@ public class MomentService {
             existingMoment.setContent(updatedData.getContent());
             existingMoment.setMood(updatedData.getMood());
             existingMoment.setLocation(resolveLocation(updatedData.getLocation()));
-            existingMoment.setUpdatedAt(LocalDateTime.now());
+            existingMoment.setUpdatedAt(LocalDateTime.now(ZoneOffset.UTC));
             Moment saved = momentRepository.save(existingMoment);
             evictStatsCache(saved.getOwner().getId());
             return saved;

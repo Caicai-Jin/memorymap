@@ -397,6 +397,12 @@ function Moments() {
                     type="text"
                     value={locationQuery}
                     onChange={(e) => setLocationQuery(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault()
+                        searchLocations()
+                      }
+                    }}
                     placeholder="Search a place..."
                     className={`flex-1 ${inputClass}`}
                   />
@@ -596,7 +602,7 @@ function Moments() {
                 </div>
               )}
               <p className="mt-3 text-xs text-slate-400">
-                {new Date(moment.createdAt).toLocaleString()}
+                {new Date(`${moment.createdAt}Z`).toLocaleString()}
               </p>
               {uploadingId === moment.id && uploadPreview && (
                 <div className="mt-2 flex items-center gap-2">
