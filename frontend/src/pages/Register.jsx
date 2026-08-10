@@ -6,6 +6,7 @@ function Register() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
 
   function handleEmailOnChange(e) {
@@ -17,19 +18,26 @@ function Register() {
   async function handleRegister(e) {
     e.preventDefault()
     setError('')
+    setLoading(true)
 
-    const response = await fetch(`${BASE_URL}/register`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
-    })
+    try {
+      const response = await fetch(`${BASE_URL}/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      })
 
-    if (!response.ok) {
-      setError('Registration failed. Email may already be in use.')
-      return
+      if (!response.ok) {
+        setError('Registration failed. Email may already be in use.')
+        return
+      }
+
+      navigate('/login')
+    } catch {
+      setError('Could not reach the server. The backend may be waking up from sleep (can take up to a minute) - please try again.')
+    } finally {
+      setLoading(false)
     }
-
-    navigate('/login')
   }
 
   return (
@@ -68,9 +76,10 @@ function Register() {
         </div>
         <button
           type="submit"
-          className="mt-6 w-full rounded-lg bg-indigo-600 px-3 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-indigo-700"
+          disabled={loading}
+          className="mt-6 w-full rounded-lg bg-indigo-600 px-3 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          Sign up
+          {loading ? 'Signing up...' : 'Sign up'}
         </button>
         {error && <p className="mt-3 text-center text-sm text-red-600">{error}</p>}
         <p className="mt-6 text-center text-sm text-slate-500">
