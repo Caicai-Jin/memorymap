@@ -55,6 +55,20 @@ The frontend never talks to Postgres, Redis, Cloudinary, or Photon directly — 
 - **Upload limits validated before the network call, not after.** File-size and Cloudinary-upload-count checks run before any file is sent to Cloudinary, so a rejected upload never wastes bandwidth or storage on a file that was going to be deleted anyway.
 - **Both automated-test styles, deliberately.** The core ownership rule is covered by both a unit test (mocked dependencies, isolated logic) and an end-to-end test (real HTTP layer, real database) — see `MomentServiceTest` and `MomentOwnershipTest`.
 
+## Challenges I Ran Into
+
+**Users could access each other's moments by just changing the URL.** Early in Phase 2, `/moments/{id}` fetched a moment by id with no ownership check — log in as anyone, swap the id in the URL, and you could read, edit, or delete someone else's entries. It's a textbook IDOR (insecure direct object reference), and it's easy to miss because the happy path — you fetching your own moment — works perfectly fine while it's broken. I fixed it by comparing the moment's owner against the authenticated user on every read/update/delete in `MomentService`, then wrote `MomentOwnershipTest` specifically to register two separate users and prove one gets a 403 touching the other's data — not just that a single user's own CRUD works.
+
+**Showing "near home" without showing home.** The home-location feature — mark a spot as your address, see mood patterns near it in stats — meant the exact coordinates had to flow through the same code paths as every other location, but never actually reach the client. Trimming it in the frontend wasn't good enough, since anyone could hit the API directly. I centralized the fix in one place, `LocationService.maskIfHome`, which swaps in a stripped-down location (name `"Home"`, no address, no coordinates) whenever the type is `HOME`, and made sure both the moment response and the stats response route through it before anything leaves the server.
+
+**Stats went stale after editing a moment.** Once yearly stats were cached in Redis, keyed by user and year, creating or editing a moment didn't touch that cache — so you could add a new entry and still see last week's mood breakdown. I added a cache-eviction step after every write in `MomentService` that clears just that user's cached years instead of flushing the whole cache, so it doesn't affect other users.
+
+**Trusting the client on video length.** Upload limits (9 items, 3 videos, 60s, 50MB) sounded simple until I realized duration isn't something you can check from file size or a MIME type — a client could just lie about it. File size gets checked before the file is ever sent to Cloudinary, so an oversized upload is rejected instantly. Duration only exists once Cloudinary has actually processed the file, so that check happens after upload, and if it fails, the now-useless clip is deleted from Cloudinary right away instead of sitting in storage forever.
+
+**Deciding how to test ownership logic.** I didn't want to mock my way through the ownership rule and call it tested — a mock can't tell me the real HTTP layer, the JWT filter, and the database are actually wired together correctly. So one test covers the logic in isolation with mocked dependencies, and a separate one spins up the full app, registers two real users, and asserts a 403 over actual HTTP. Slower, but it's the one that would have caught the original IDOR bug.
+
+**Config that only worked on localhost.** Early on, the frontend's API URL and the backend's allowed CORS origin were both hardcoded to localhost ports, which broke the moment I deployed to Render, since the frontend and backend now live on different domains. I moved both to environment variables instead, so the same build works locally and in production without touching code.
+
 ## API Documentation
 
 Every endpoint is documented and testable interactively once the backend is running:
@@ -62,7 +76,6 @@ Every endpoint is documented and testable interactively once the backend is runn
 ```
 http://localhost:8080/swagger-ui/index.html
 ```
-
 Register or log in via the docs page's `/register` or `/login` endpoints, then click **Authorize** and paste the returned token — every subsequent request made through the docs UI will carry it automatically.
 
 ## Getting Started
