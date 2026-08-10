@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 function Landing() {
   return (
     <div>
-      <section className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-gradient-to-br from-rose-100 via-amber-50 to-indigo-100 px-4">
+      <section className="relative flex min-h-[80vh] flex-col items-center justify-center overflow-hidden bg-gradient-to-br from-rose-100 via-amber-50 to-indigo-100 px-4">
         <div className="pointer-events-none absolute -left-24 -top-24 h-72 w-72 rounded-full bg-rose-200 opacity-50 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-24 -right-24 h-72 w-72 rounded-full bg-indigo-200 opacity-50 blur-3xl" />
 
@@ -29,6 +29,10 @@ function Landing() {
             </Link>
           </div>
         </div>
+
+        <span className="pointer-events-none absolute bottom-6 animate-bounce text-slate-400">
+          ↓
+        </span>
       </section>
 
       <section className="bg-white px-4 py-20">
