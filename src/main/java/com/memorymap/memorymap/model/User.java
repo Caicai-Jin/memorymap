@@ -30,4 +30,16 @@ public class User {
     @Size(min = 8, message = "Password must be at least 8 characters")
     private String password;
     private LocalDateTime createdAt;
+
+    private boolean emailVerified = false;
+
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
+    private String verificationToken;
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
+    private LocalDateTime verificationTokenExpiry;
+
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
+    private String resetToken;
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
+    private LocalDateTime resetTokenExpiry;
 }

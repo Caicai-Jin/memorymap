@@ -19,10 +19,10 @@ Location is a supporting feature, not the point. If you attach a place to a mome
 
 - **Moments** — create, edit, and delete journal entries with optional text, mood tags, media, and location, each secured to its owner
 - **Media** — photo/video uploads via Cloudinary, with enforced limits (9 items per moment, 3 videos max, 60s per video, 50MB per file)
-- **Locations** — real-world place search, with a dedicated Home address that is masked server-side on every response — other consumers of the API only ever see `"Home"`, never the real address or coordinates
+- **Locations** — real-world place search (with a manual pin-drop fallback for addresses OpenStreetMap doesn't have precisely indexed), and a dedicated Home address that is masked server-side on every response — other consumers of the API only ever see `"Home"`, never the real address or coordinates
 - **Map view** — every public location plotted on an interactive map; Home locations never appear
 - **Stats** — yearly mood breakdown and dominant-mood/location summaries, cached in Redis
-- **Auth** — JWT-based registration and login, with every endpoint enforcing per-user ownership
+- **Auth** — JWT-based registration and login, with every endpoint enforcing per-user ownership; registration requires clicking a real emailed verification link before login is allowed, and password reset works the same way (emailed link, not a code)
 
 ## Architecture
 
@@ -34,6 +34,7 @@ flowchart LR
     Backend --> Redis[(Redis<br/>stats cache)]
     Backend --> Cloudinary[Cloudinary<br/>media storage]
     Backend --> Photon[Photon<br/>place search]
+    Backend --> Brevo[Brevo<br/>transactional email]
 ```
 
 The frontend never talks to Postgres, Redis, Cloudinary, or Photon directly — every request goes through the backend, which is the single point enforcing authentication, ownership, and the Home-location masking rule.
@@ -44,7 +45,7 @@ The frontend never talks to Postgres, Redis, Cloudinary, or Photon directly — 
 
 **Frontend** — React 19, Vite, React Router, Tailwind CSS, React Leaflet
 
-**Data & external services** — PostgreSQL, Redis, Cloudinary (media storage), Photon (place search, OpenStreetMap-based)
+**Data & external services** — PostgreSQL, Redis, Cloudinary (media storage), Photon (place search, OpenStreetMap-based), Brevo (transactional email for verification/password reset)
 
 **Infrastructure** — Docker Compose, GitHub Actions CI
 
@@ -68,6 +69,12 @@ The frontend never talks to Postgres, Redis, Cloudinary, or Photon directly — 
 **Deciding how to test ownership logic.** I didn't want to mock my way through the ownership rule and call it tested — a mock can't tell me the real HTTP layer, the JWT filter, and the database are actually wired together correctly. So one test covers the logic in isolation with mocked dependencies, and a separate one spins up the full app, registers two real users, and asserts a 403 over actual HTTP. Slower, but it's the one that would have caught the original IDOR bug.
 
 **Config that only worked on localhost.** Early on, the frontend's API URL and the backend's allowed CORS origin were both hardcoded to localhost ports, which broke the moment I deployed to Render, since the frontend and backend now live on different domains. I moved both to environment variables instead, so the same build works locally and in production without touching code.
+
+**A login/register request that failed with zero feedback.** The free-tier backend spins down after 15 minutes idle and takes 30-60 seconds to wake back up, but the `fetch` calls in `Login.jsx`/`Register.jsx` had no loading state and no error handling — so on a cold start, clicking "Sign up" just looked like the button did nothing. I added a `loading` state that disables the button and swaps its label while the request is in flight, plus a `catch` block that surfaces a clear message if the request fails outright instead of failing silently.
+
+**A silent form submission that quietly dropped the location.** The location-search box lived inside the same `<form>` as the rest of the "new moment" fields, so pressing Enter to trigger a search did something unexpected instead: it submitted the whole moment, before any search result had even been picked. The moment still saved — just with no location attached — so there was no visible error, only entries that mysteriously never showed up on the map later. I fixed it by intercepting Enter on the search input specifically (`preventDefault()` + run the search), instead of letting it bubble up to the form's own submit handler.
+
+**Moment timestamps that were right locally and wrong once deployed.** `LocalDateTime.now()` returns wall-clock time in whatever timezone the *server* happens to be running in — my own machine locally, but UTC on Render — and Jackson serializes it with no timezone marker at all, so the frontend had no way to tell which zone a timestamp was even in. Locally the two zones happened to match, which is exactly what made this easy to miss until after deploying. I fixed it by pinning every `LocalDateTime.now()` call to UTC explicitly (`LocalDateTime.now(ZoneOffset.UTC)`), so a stored timestamp means the same real moment regardless of where the server runs, and by having the frontend append `Z` before parsing it so the browser correctly converts it to the viewer's own local time.
 
 ## API Documentation
 

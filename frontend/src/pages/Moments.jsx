@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { apiFetch } from '../api.js'
 import Navbar from '../components/Navbar.jsx'
 import HomeLocationModal from '../components/HomeLocationModal.jsx'
+import LocationMapPicker from '../components/LocationMapPicker.jsx'
 
 const inputClass =
   'rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30'
@@ -170,9 +171,33 @@ function Moments() {
     setLocationQuery('')
   }
 
+  // For when search can't find a place precisely (common for residential
+  // house numbers, which OpenStreetMap often doesn't have indexed) — drops
+  // a pin with no coordinates yet, which the map picker below then requires
+  // the user to place by clicking/dragging before it can be submitted.
+  function startCustomPin() {
+    setSelectedLocation({
+      name: locationQuery.trim() || 'Custom location',
+      address: '',
+      latitude: null,
+      longitude: null,
+    })
+    setLocationResults([])
+    setLocationQuery('')
+  }
+
+  function adjustSelectedLocation(latitude, longitude) {
+    setSelectedLocation((current) => (current ? { ...current, latitude, longitude } : current))
+  }
+
   async function handleSubmit(e) {
     e.preventDefault()
     setFormError('')
+
+    if (selectedLocation && !selectedLocation.id && selectedLocation.latitude == null) {
+      setFormError('Click or drag on the map to place the location pin before saving.')
+      return
+    }
 
     const moodList = mood
       .split(',')
@@ -437,18 +462,37 @@ function Moments() {
                     ))}
                   </ul>
                 )}
+                <button
+                  type="button"
+                  onClick={startCustomPin}
+                  className="self-start text-xs font-medium text-indigo-600 hover:underline"
+                >
+                  Can't find it? Place a pin manually
+                </button>
               </>
             )}
             {selectedLocation && !selectedLocation.id && (
-              <label className="flex items-center gap-2 text-sm text-slate-600">
-                <input
-                  type="checkbox"
-                  checked={isHomeLocation}
-                  onChange={(e) => setIsHomeLocation(e.target.checked)}
-                  className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500/30"
+              <>
+                <p className="text-xs text-slate-500">
+                  {selectedLocation.latitude == null
+                    ? 'Click on the map to place the pin.'
+                    : "Drag the pin if it's not quite right."}
+                </p>
+                <LocationMapPicker
+                  latitude={selectedLocation.latitude}
+                  longitude={selectedLocation.longitude}
+                  onChange={adjustSelectedLocation}
                 />
-                This is my Home address (hides the real address from others)
-              </label>
+                <label className="flex items-center gap-2 text-sm text-slate-600">
+                  <input
+                    type="checkbox"
+                    checked={isHomeLocation}
+                    onChange={(e) => setIsHomeLocation(e.target.checked)}
+                    className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500/30"
+                  />
+                  This is my Home address (hides the real address from others)
+                </label>
+              </>
             )}
           </div>
           {existingMedia.length > 0 && (
