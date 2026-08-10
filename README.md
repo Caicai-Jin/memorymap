@@ -146,3 +146,10 @@ memorymap/
 ├── docker-compose.yml
 └── .github/workflows/  CI pipeline
 ```
+
+## Live Demo
+
+- Frontend: https://memorymap-frontend-hz0x.onrender.com
+- API docs: https://memorymap-backend.onrender.com/swagger-ui/index.html
+
+Hosted on free-tier infrastructure (Render, Neon, Upstash). The backend spins down after 15 minutes of inactivity, so the first request after a while can take 30-60 seconds to wake up — subsequent requests are fast.
