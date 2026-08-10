@@ -105,7 +105,12 @@ function Register() {
           {loading ? 'Signing up...' : 'Sign up'}
         </button>
         {error && <p className="mt-3 text-center text-sm text-red-600">{error}</p>}
-        <p className="mt-6 text-center text-sm text-slate-500">
+        <p className="mt-4 text-center text-sm">
+          <Link to="/forgot-password" className="font-medium text-indigo-600 hover:underline">
+            Forgot password?
+          </Link>
+        </p>
+        <p className="mt-2 text-center text-sm text-slate-500">
           Already have an account?{' '}
           <Link to="/login" className="font-medium text-indigo-600 hover:underline">
             Sign in
